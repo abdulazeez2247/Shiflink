@@ -6,7 +6,6 @@ const connectDB = async () => {
     console.log('MongoDB Connected');
   } catch (err) {
     console.error('MongoDB Connection Error:', err.message);
-    // More detailed error logging
     if (err.message.includes('bad auth')) {
       console.error('Double check your username and password in .env');
       console.error('Remember to URL-encode special characters in password');

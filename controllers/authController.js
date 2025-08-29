@@ -1,87 +1,68 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-
-exports.register = async (req, res) => {
-  const { 
-    firstName,
-    lastName,
-    email,
-    phone,
-    role,
-    password,
-    agreedToTOS,
-    agreedToAntiCircumvention
-  } = req.body;
-
+const { generateJWT } = require('../utils/generateToken');
+const createError = require('http-errors');
+const crypto = require("crypto");
+const AuditLog = require('../models/AuditLog');
+const { sendEmail } = require("../utils/emailService");
+const register = async (req, res, next) => {
   try {
-    if (!agreedToTOS || !agreedToAntiCircumvention) {
-      return res.status(400).json({ 
-        error: 'You must accept Terms of Service and Anti-Circumvention Policy' 
-      });
-    }
-
-    const user = await User.create({
-      firstName,
-      lastName,
-      email,
-      phone,
-      role,
-      password,
-      agreedToTOS,
-      agreedToAntiCircumvention
+    const user = await User.create(req.body);
+    const token = generateJWT({ userId: user._id, role: user.role }, process.env.JWT_SECRET, '7d');
+    
+    await AuditLog.create({
+      user: user._id,
+      role: user.role,
+      action: 'user_registered',
+      targetModel: 'User',
+      targetId: user._id
     });
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        phone: user.phone
-      }
-    });
-
+    res.status(201).json({ user: user.toJSON(), token });
   } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-    res.status(400).json({ error: err.message });
+    next(createError(400, err.message));
   }
 };
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
+const login = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email });
-    if (!user) throw new Error('User not found');
+    const { email, password } = req.body;
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user || !(await user.comparePassword(password))) {
+      throw createError(401, 'Invalid credentials');
+    }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error('Invalid credentials');
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({ 
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        role: user.role
-      }
-    });
+    const token = generateJWT({ userId: user._id, role: user.role }, process.env.JWT_SECRET, '7d');
+    res.json({ user: user.toJSON(), token });
   } catch (err) {
-    res.status(401).json({ error: err.message });
+    next(err);
   }
 };
+const forgotPassword = async (req, res, next) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    const resetToken = crypto.randomBytes(20).toString("hex");
+    user.resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/reset-password/${resetToken}`;
+
+    await sendEmail(
+      user.email,
+      process.env.SENDGRID_RESET_TEMPLATE_ID, // dynamic template from SendGrid
+      { reset_url: resetUrl, name: user.name }
+    );
+
+    res.json({ message: "Password reset email sent" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+module.exports = { register, login, forgotPassword };

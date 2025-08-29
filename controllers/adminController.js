@@ -1,41 +1,139 @@
-const Admin = require('../models/Admin');
-const jwt = require('jsonwebtoken');
+const mongoose = require("mongoose");
+const createError = require("http-errors");
+const User = require("../models/User");
+const AuditLog = require("../models/AuditLog");
 
-// Special admin invitation (manual creation only)
-exports.createAdmin = async (req, res) => {
-  const { email, password } = req.body;
-  
+const getClientInfo = (req) => {
+  return {
+    ipAddress: req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+    userAgent: req.headers["user-agent"],
+  };
+};
+
+// @desc Suspend a user
+const suspendUser = async (req, res, next) => {
   try {
-    const admin = await Admin.create({ email, password });
-    const token = jwt.sign(
-      { id: admin._id, role: admin.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' } // Shorter expiry for admin tokens
-    );
-    res.status(201).json({ token });
+    const { userId, reason } = req.body;
+
+    if (!userId || !reason) throw createError(400, "User ID and reason are required");
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isSuspended: true,
+        suspensionReason: reason,
+        suspendedBy: req.user._id,
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) throw createError(404, "User not found");
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+
+    await AuditLog.create({
+      user: req.user._id,
+      role: "Admin",
+      action: `Suspended user ${userId}`,
+      targetModel: "User",
+      targetId: userId,
+      ipAddress,
+      userAgent,
+      metadata: { reason },
+    });
+
+    res.json({ message: "User suspended successfully", user });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 };
 
-// Admin login (separate from user login)
-exports.adminLogin = async (req, res) => {
-  const { email, password } = req.body;
-  
+// @desc Reinstate a user
+const reinstateUser = async (req, res, next) => {
   try {
-    const admin = await Admin.findOne({ email });
-    if (!admin) throw new Error('Admin not found');
-    
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) throw new Error('Invalid credentials');
-    
-    const token = jwt.sign(
-      { id: admin._id, role: admin.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-    res.json({ token });
+    const { userId } = req.body;
+
+    if (!userId) throw createError(400, "User ID is required");
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isSuspended: false,
+        suspensionReason: null,
+        suspendedBy: null,
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) throw createError(404, "User not found");
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+
+    await AuditLog.create({
+      user: req.user._id,
+      role: "Admin",
+      action: `Reinstated user ${userId}`,
+      targetModel: "User",
+      targetId: userId,
+      ipAddress,
+      userAgent,
+    });
+
+    res.json({ message: "User reinstated successfully", user });
   } catch (err) {
-    res.status(401).json({ error: err.message });
+    next(err);
   }
+};
+
+// @desc Dashboard stats
+const getDashboardStats = async (req, res, next) => {
+  try {
+    const [users, shifts, bookings, payments] = await Promise.all([
+      User.countDocuments(),
+      mongoose.model("Shift").countDocuments(),
+      mongoose.model("Booking").countDocuments({ status: "pending" }),
+      mongoose.model("Payment").countDocuments({ status: "completed" }),
+    ]);
+
+    res.json({
+      totalUsers: users,
+      totalShifts: shifts,
+      pendingBookings: bookings,
+      completedPayments: payments,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc Get audit logs (with filters)
+const getAuditLogs = async (req, res, next) => {
+  try {
+    const { role, action, startDate, endDate, limit = 50 } = req.query;
+    const filter = {};
+
+    if (role) filter.role = role;
+    if (action) filter.action = new RegExp(action, "i");
+    if (startDate || endDate) {
+      filter.timestamp = {};
+      if (startDate) filter.timestamp.$gte = new Date(startDate);
+      if (endDate) filter.timestamp.$lte = new Date(endDate);
+    }
+
+    const logs = await AuditLog.find(filter)
+      .sort({ timestamp: -1 })
+      .limit(Number(limit))
+      .populate("user", "name email role");
+
+    res.json(logs);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  suspendUser,
+  reinstateUser,
+  getDashboardStats,
+  getAuditLogs,
 };

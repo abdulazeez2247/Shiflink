@@ -14,7 +14,7 @@ const AdminSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password is required'],
     minlength: [10, 'Password must be at least 10 characters long'],
-    select: false // Exclude from queries unless explicitly selected
+    select: false 
   },
   role: {
     type: String,
@@ -34,7 +34,7 @@ AdminSchema.pre('save', async function(next) {
   next();
 });
 
-// Method to compare password
+
 AdminSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };

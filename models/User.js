@@ -22,13 +22,16 @@ const UserSchema = new mongoose.Schema(
       required: true,
       validate: {
         validator: function (v) {
-          // Basic international format: +[country code][number], e.g., +14155552671
-          return /^\+\d{1,4}\d{6,14}$/.test(v); // +1 to +4 digits country code
+          
+          return /^(\+?\d{1,3}[-.\s]?)?(\(?\d{1,4}\)?[-.\s]?){1,5}\d{1,4}$/.test(
+            v
+          );
         },
         message: (props) =>
-          `${props.value} is not a valid international phone number!`,
+          `${props.value} is not a valid phone number format!`,
       },
     },
+
     role: {
       type: String,
       enum: ["dsp", "agency", "trainer", "county"],
@@ -57,7 +60,6 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password pre-save
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);

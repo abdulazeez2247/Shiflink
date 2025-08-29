@@ -1,11 +1,19 @@
-const express = require('express');
-const { createAdmin, adminLogin } = require('../controllers/adminController');
+const express = require("express");
 const router = express.Router();
+const {
+  suspendUser,
+  reinstateUser,
+  getDashboardStats,
+  getAuditLogs,
+} = require("../controllers/adminController");
+const auth = require("../middlewares/auth");
+const isAdmin = require("../middlewares/isAdmin");
 
-// Restricted to super-admins only
-router.post('/invite', createAdmin); 
+router.use(auth, isAdmin);
 
-// Admin-specific login
-router.post('/login', adminLogin);
+router.post("/suspend-user", suspendUser);
+router.post("/reinstate-user", reinstateUser);
+router.get("/dashboard-stats", getDashboardStats);
+router.get("/audit-logs", getAuditLogs);
 
 module.exports = router;
