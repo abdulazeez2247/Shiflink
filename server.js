@@ -36,7 +36,7 @@ const getAllowedOrigins = () => {
     }
     return [process.env.CLIENT_URL];
   }
-  return ['http://localhost:8080', 'http://localhost:3000'];
+  return ['https://shiflink-frontend.vercel.app', 'http://localhost:3000'];
 };
 
 const allowedOrigins = getAllowedOrigins();
