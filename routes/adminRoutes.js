@@ -1,19 +1,37 @@
-const express = require("express");
+// const express = require("express");
+// const router = express.Router();
+// const {
+//   suspendUser,
+//   reinstateUser,
+//   getDashboardStats,
+//   getAuditLogs,
+// } = require("../controllers/adminController");
+// const auth = require("../middlewares/auth");
+// const isAdmin = require("../middlewares/isAdmin");
+
+// router.use(auth, isAdmin);
+
+// router.post("/suspend-user", suspendUser);
+// router.post("/reinstate-user", reinstateUser);
+// router.get("/dashboard-stats", getDashboardStats);
+// router.get("/audit-logs", getAuditLogs);
+
+// module.exports = router;
+const express = require('express');
 const router = express.Router();
 const {
-  suspendUser,
-  reinstateUser,
-  getDashboardStats,
+  getAdminStats,
   getAuditLogs,
-} = require("../controllers/adminController");
-const auth = require("../middlewares/auth");
-const isAdmin = require("../middlewares/isAdmin");
+  suspendUser,
+  reinstateUser
+} = require('../controllers/adminController');
+const auth = require('../middlewares/auth');
+const isAdmin = require('../middlewares/isAdmin');
 
 router.use(auth, isAdmin);
-
-router.post("/suspend-user", suspendUser);
-router.post("/reinstate-user", reinstateUser);
-router.get("/dashboard-stats", getDashboardStats);
-router.get("/audit-logs", getAuditLogs);
+router.get('/dashboard-stats', getAdminStats);
+router.get('/audit-logs', getAuditLogs);
+router.post('/suspend-user', suspendUser);
+router.post('/reinstate-user', reinstateUser);
 
 module.exports = router;

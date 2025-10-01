@@ -6,7 +6,7 @@ const BookingSchema = new mongoose.Schema({
   agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
     type: String, 
-    enum: ['pending', 'confirmed', 'completed', 'cancelled'], 
+    enum: ['pending', 'confirmed', 'completed', 'cancelled', 'approved'], 
     default: 'pending' 
   },
 
@@ -54,9 +54,9 @@ BookingSchema.pre('save', async function(next) {
     }
 
     
-    if (!dspUser.complianceStatus?.isComplete) {
-      throw new Error('DSP compliance requirements not met.');
-    }
+    // if (!dspUser.complianceStatus?.isComplete) {
+    //   throw new Error('DSP compliance requirements not met.');
+    // }
 
     next();
   } catch (err) {

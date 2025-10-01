@@ -6,15 +6,21 @@ const ConversationSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        index: true, // helps speed up lookups
+        index: true,
       },
     ],
+    // ADD THIS FIELD
+    shift: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shift",
+      index: true
+    },
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
   },
-  { timestamps: true } // adds createdAt + updatedAt
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Conversation", ConversationSchema);

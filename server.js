@@ -28,11 +28,43 @@ const server = http.createServer(app);
 connectDB();
 socketio.init(server);
 
-// Middleware
+// Parse multiple URLs from CLIENT_URL
+const getAllowedOrigins = () => {
+  if (process.env.CLIENT_URL) {
+    if (process.env.CLIENT_URL.includes(',')) {
+      return process.env.CLIENT_URL.split(',').map(url => url.trim());
+    }
+    return [process.env.CLIENT_URL];
+  }
+  return ['http://localhost:8080', 'http://localhost:3000'];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
+console.log('🔄 Allowed CORS origins:', allowedOrigins);
+
+// CORS Middleware - UPDATED
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.log('🚫 Blocked by CORS:', origin);
+      const msg = `The CORS policy does not allow access from ${origin}. Allowed origins: ${allowedOrigins.join(', ')}`;
+      return callback(new Error(msg), false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,7 +87,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    allowedOrigins: allowedOrigins
   });
 });
 
@@ -75,7 +108,7 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  // console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔗 Allowed origins: ${allowedOrigins.join(', ')}`);
 });
 
 // Graceful shutdown
