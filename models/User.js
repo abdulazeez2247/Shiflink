@@ -212,9 +212,9 @@ const UserSchema = new mongoose.Schema(
     agencyName: {
       type: String,
       trim: true,
-      required: function() {
-        return this.role === 'agency';
-      }
+      // required: function() {
+      //   return this.role === 'agency';
+      // }
     },
     agencyLicense: {
       type: String,
