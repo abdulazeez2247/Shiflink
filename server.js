@@ -36,7 +36,7 @@ const getAllowedOrigins = () => {
     }
     return [process.env.CLIENT_URL];
   }
-  return ['https://shiflink-frontend.vercel.app', 'http://localhost:8080'];
+  return ['https://shiflink-frontend.vercel.app', 'http://localhost:8080', 'https://www.athomecarelink.com'];
   // return 'http://localhost:8080';
 };
 
