@@ -1,190 +1,3 @@
-// const Shift = require('../models/Shift');
-// const Booking = require('../models/Booking');
-// const createError = require('http-errors');
-
-// const createShift = async (req, res, next) => {
-//   try {
-//     const shift = await Shift.create({ ...req.body, agency: req.user._id });
-//     res.status(201).json(shift);
-//   } catch (err) {
-//     next(createError(400, err.message));
-//   }
-// };
-
-// const getAgencyShifts = async (req, res, next) => {
-//   try {
-//     const { page = 1, limit = 10, status } = req.query;
-//     const filter = { agency: req.user._id, isDeleted: false };
-//     if (status) filter.status = status;
-
-//     const shifts = await Shift.find(filter)
-//       .populate('assignedDSP', 'firstName lastName')
-//       .sort({ createdAt: -1 })
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit);
-
-//     res.json(shifts);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// const getAgencyBookings = async (req, res, next) => {
-//   try {
-//     const shifts = await Shift.find({ agency: req.user._id }).select('_id');
-//     const bookings = await Booking.find({ shift: { $in: shifts } })
-//       .populate('dsp', 'firstName lastName email')
-//       .populate('shift', 'title startTime endTime');
-
-//     res.json(bookings);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// module.exports = { createShift, getAgencyShifts, getAgencyBookings };
-// const Shift = require('../models/Shift');
-// const Booking = require('../models/Booking');
-// const User = require('../models/User');
-// const createError = require('http-errors');
-
-// const createShift = async (req, res, next) => {
-//   try {
-//     const shift = await Shift.create({ ...req.body, agency: req.user._id });
-//     res.status(201).json(shift);
-//   } catch (err) {
-//     next(createError(400, err.message));
-//   }
-// };
-
-// const getAgencyShifts = async (req, res, next) => {
-//   try {
-//     const { page = 1, limit = 10, status } = req.query;
-//     const filter = { agency: req.user._id, isDeleted: false };
-//     if (status) filter.status = status;
-
-//     const shifts = await Shift.find(filter)
-//       .populate('assignedDSP', 'firstName lastName')
-//       .sort({ createdAt: -1 })
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit);
-
-//     res.json(shifts);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// const getAgencyBookings = async (req, res, next) => {
-//   try {
-//     const shifts = await Shift.find({ agency: req.user._id }).select('_id');
-//     const bookings = await Booking.find({ shift: { $in: shifts } })
-//       .populate('dsp', 'firstName lastName email')
-//       .populate('shift', 'title startTime endTime');
-
-//     res.json(bookings);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// const updateShift = async (req, res, next) => {
-//   try {
-//     const { id } = req.params;
-//     const shift = await Shift.findOneAndUpdate(
-//       { _id: id, agency: req.user._id },
-//       req.body,
-//       { new: true, runValidators: true }
-//     ).populate('assignedDSP', 'firstName lastName');
-
-//     if (!shift) {
-//       return next(createError(404, 'Shift not found'));
-//     }
-
-//     res.json(shift);
-//   } catch (err) {
-//     next(createError(400, err.message));
-//   }
-// };
-
-// const deleteShift = async (req, res, next) => {
-//   try {
-//     const { id } = req.params;
-//     const shift = await Shift.findOneAndUpdate(
-//       { _id: id, agency: req.user._id },
-//       { isDeleted: true },
-//       { new: true }
-//     );
-
-//     if (!shift) {
-//       return next(createError(404, 'Shift not found'));
-//     }
-
-//     res.json({ message: 'Shift deleted successfully' });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// const getAgencyStats = async (req, res, next) => {
-//   try {
-//     const agencyId = req.user._id;
-    
-//     // Get total active shifts
-//     const totalShifts = await Shift.countDocuments({
-//       agency: agencyId,
-//       isDeleted: false,
-//       status: 'active'
-//     });
-    
-//     // Get active DSPs (DSPs who have booked shifts with this agency)
-//     const activeDSPs = await Booking.distinct('dsp', {
-//       'shift.agency': agencyId,
-//       status: { $in: ['confirmed', 'completed'] }
-//     });
-    
-//     // Get pending applications (bookings with pending status)
-//     const pendingApplications = await Booking.countDocuments({
-//       'shift.agency': agencyId,
-//       status: 'pending'
-//     });
-    
-//     // Get this month's hours (completed shifts)
-//     const startOfMonth = new Date();
-//     startOfMonth.setDate(1);
-//     startOfMonth.setHours(0, 0, 0, 0);
-    
-//     const completedBookings = await Booking.find({
-//       'shift.agency': agencyId,
-//       status: 'completed',
-//       createdAt: { $gte: startOfMonth }
-//     }).populate('shift');
-    
-//     const thisMonthHours = completedBookings.reduce((total, booking) => {
-//       const shift = booking.shift;
-//       const hours = (new Date(shift.endTime) - new Date(shift.startTime)) / (1000 * 60 * 60);
-//       return total + hours;
-//     }, 0);
-    
-//     res.json({
-//       totalShifts,
-//       activeDSPs: activeDSPs.length,
-//       pendingApplications,
-//       thisMonthHours: Math.round(thisMonthHours)
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// module.exports = { 
-//   createShift, 
-//   getAgencyShifts, 
-//   getAgencyBookings, 
-//   updateShift, 
-//   deleteShift, 
-//   getAgencyStats 
-// };
 const Shift = require('../models/Shift');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
@@ -299,24 +112,24 @@ const getAgencyStats = async (req, res, next) => {
   try {
     const agencyId = req.user._id;
     
-    // FIXED: Count ALL active shifts (including 'open' status)
+    // Count ALL active shifts (including 'open' status)
     const totalShifts = await Shift.countDocuments({
       agency: agencyId,
       isDeleted: false,
-      status: { $in: ['open', 'assigned', 'active'] }
+      status: { $in: ['open', 'assigned'] } // Fixed: use actual status values from your Shift model
     });
     
-    // FIXED: Get active DSPs from BOOKINGS (not just shifts)
+    // Get active DSPs from BOOKINGS
     const activeBookings = await Booking.find({
       agency: agencyId,
-      status: { $in: ['confirmed', 'assigned', 'active'] },
+      status: { $in: ['confirmed', 'assigned'] }, // Fixed: use actual Booking status values
       isDeleted: false
     }).select('dsp');
     
     // Get unique DSP IDs from bookings
     const activeDSPIds = [...new Set(activeBookings.map(booking => booking.dsp?.toString()).filter(Boolean))];
     
-    // FIXED: Get pending applications
+    // Get pending applications
     const pendingApplications = await Booking.countDocuments({
       agency: agencyId,
       status: 'pending',
@@ -336,7 +149,7 @@ const getAgencyStats = async (req, res, next) => {
     
     const thisMonthHours = completedBookings.reduce((total, booking) => {
       const shift = booking.shift;
-      if (shift) {
+      if (shift && shift.startTime && shift.endTime) {
         const hours = (new Date(shift.endTime) - new Date(shift.startTime)) / (1000 * 60 * 60);
         return total + hours;
       }
